@@ -1,0 +1,96 @@
+---
+title: "Midcourse"
+output: html_document
+---
+```{r}
+library(httr)
+library(tidyverse)
+library(jsonlite)
+```
+#Using API to get Metro Nashivlle Traffic data for 2018
+```{r}
+url = 'https://data.nashville.gov/resource/6v6w-hpcw.json?$limit=300000'
+
+query = list(
+  '$where'= 'date_and_time between "2018-01-01T00:00:00" and "2019-01-01T00:00:00"'
+) 
+
+response <- GET(url, query = query)
+```
+
+```{r}
+response$status_code
+```
+
+#Convert to tibble
+```{r}
+traffic <-content(response, as = 'text') %>% 
+  fromJSON()
+```
+
+#Remove some columns
+```{r}
+traffic <- traffic %>% 
+  select(-c(reporting_officer,illuaccidemination,harmfulcodes, state, rpa, precinct,weather))
+```
+```{r}
+traffic
+```
+
+#API for Calls for Service for 2018
+```{r}
+url = 'https://data.nashville.gov/resource/kwnd-qrrm.json?$limit=50000000'
+
+query = list(
+  '$where'= 'call_rec between "2018-01-01T00:00:00" and "2019-01-01T00:00:00"'
+)
+
+response <- GET(url, query = query)
+```
+#Change to tibble and remove columns 
+```{r}
+calls <- content(response, as = 'text')  %>% 
+  fromJSON()
+
+calls <- calls %>% 
+  select(-c(tencode_suf,disposition_code, shift))
+
+```
+
+
+```{r}
+calls
+```
+#Convert timestamps from characters 
+```{r}
+calls$call_rec <- as.POSIXct(calls$call_rec, format = "%Y-%m-%dT%H:%M:%OS")
+
+traffic$date_and_time <- as.POSIXct(traffic$date_and_time, format = "%Y-%m-%dT%H:%M:%OS")
+```
+#Subsetting calls to test
+```{r}
+calls %>% 
+  subset(call_rec >= as.POSIXct( '2018-03-11 00:00:00') &
+         call_rec <= as.POSIXct( '2018-03-13 00:00:14')
+  )
+```
+```{r}
+top10_tencode <- calls %>% 
+  group_by(tencode) %>% 
+  summarize(count = n()) %>%
+  top_n(n =10, wt= count) %>% 
+  ggplot(aes(x=tencode, y=count)) +
+    geom_col()
+```
+
+```{r}
+calls %>% 
+  group_by(tencode) %>% 
+  summarize(count = n()) %>%
+  top_n(n =10, wt= count) %>% 
+  arrange(desc(count))
+```
+
+
+
+
