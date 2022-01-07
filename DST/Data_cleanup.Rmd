@@ -12,7 +12,7 @@ library(jsonlite)
 url = 'https://data.nashville.gov/resource/6v6w-hpcw.json?$limit=300000'
 
 query = list(
-  '$where'= 'date_and_time between "2018-01-01T00:00:00" and "2019-01-01T00:00:00"'
+  '$where'= 'date_and_time between "2018-01-01T00:00:00" and "2018-12-31T23:59:59"'
 ) 
 
 response <- GET(url, query = query)
@@ -39,10 +39,10 @@ traffic
 
 #API for Calls for Service for 2018
 ```{r}
-url = 'https://data.nashville.gov/resource/kwnd-qrrm.json?$limit=50000000'
+url = 'https://data.nashville.gov/resource/kwnd-qrrm.json'
 
 query = list(
-  '$where'= 'call_rec between "2018-01-01T00:00:00" and "2019-01-01T00:00:00"'
+  '$where'= 'call_rec between "2018-01-01T00:00:00" and "2018-12-31T23:59:59"'
 )
 
 response <- GET(url, query = query)
@@ -51,15 +51,10 @@ response <- GET(url, query = query)
 ```{r}
 calls <- content(response, as = 'text')  %>% 
   fromJSON()
-
+```
+```{r}
 calls <- calls %>% 
   select(-c(tencode_suf,disposition_code, shift))
-
-```
-
-
-```{r}
-calls
 ```
 #Convert timestamps from characters 
 ```{r}
@@ -70,10 +65,11 @@ traffic$date_and_time <- as.POSIXct(traffic$date_and_time, format = "%Y-%m-%dT%H
 #Subsetting calls to test
 ```{r}
 calls %>% 
-  subset(call_rec >= as.POSIXct( '2018-03-11 00:00:00') &
-         call_rec <= as.POSIXct( '2018-03-13 00:00:14')
+  filter(call_rec >= as.POSIXct( '2018-03-11 00:00:00') &
+         call_rec <= as.POSIXct( '2018-03-12 00:00:14')
   )
 ```
+#top 10 tencodes for 2018
 ```{r}
 top10_tencode <- calls %>% 
   group_by(tencode) %>% 
@@ -81,6 +77,7 @@ top10_tencode <- calls %>%
   top_n(n =10, wt= count) %>% 
   ggplot(aes(x=tencode, y=count)) +
     geom_col()
+top10_tencode
 ```
 
 ```{r}
@@ -90,7 +87,92 @@ calls %>%
   top_n(n =10, wt= count) %>% 
   arrange(desc(count))
 ```
+#starting aggregate count by month for 2018 for number of accidents
+```{r}
+traffic %>% 
+  filter(date_and_time >= as.POSIXct( '2018-03-11 00:00:00') &
+         date_and_time <= as.POSIXct( '2018-03-13 00:00:14')
+  )
+
+```
 
 
+```{r}
+traffic %>% 
+  filter(month(date_and_time) == 2)
+```
+
+#2018 total traffic accidents by month
+```{r}
+traffic$date_and_time_formatted <- format(traffic$date_and_time, "%B")
+
+traffic %>% 
+  group_by(date_and_time_formatted) %>% 
+  summarize(frequency = n()) %>%
+  ggplot(aes(x=factor(date_and_time_formatted,levels = month.name), y=frequency)) +
+    geom_col() +
+    theme(axis.title.x=element_blank())
+```
+```{r}
+head(traffic)
+```
+
+```{r}
+traffic %>% 
+  filter(month(date_and_time) == 1) %>% 
+  summarize("Number of injuries" = sum(as.numeric(number_of_injuries)),
+            "Number of Vehicles Involved" = sum(as.numeric(number_of_motor_vehicles)),
+            "Instances of Property Damage" = sum(property_damage, na.rm = T),
+            "Instances of Hit and Run" = sum(hit_and_run),
+            "Max Number of Vehicles Involved" = max(as.numeric(number_of_motor_vehicles),na.rm = T)
+            )
+```
+
+```{r}
+traffic %>% 
+  filter(month(date_and_time) == 2) %>% 
+  distinct(number_of_motor_vehicles)
+
+```
+
+```{r}
+jan_traffic <- traffic %>% 
+  filter(month(date_and_time) == 1)
+
+feb_traffic <- traffic %>% 
+  filter(month(date_and_time) == 2)
+
+march_traffic <- traffic %>% 
+  filter(month(date_and_time) == 3)
+
+april_traffic <- traffic %>% 
+  filter(month(date_and_time) == 4)
+
+may_traffic <- traffic %>% 
+ filter(month(date_and_time) == 5) 
+
+june_traffic <- traffic %>% 
+ filter(month(date_and_time) == 6)
+
+july_traffic <- traffic %>% 
+ filter(month(date_and_time) == 7)
+
+aug_traffic <- traffic %>% 
+  filter(month(date_and_time) == 8)
+
+sept_traffic <- traffic %>% 
+  filter(month(date_and_time) == 9)
+
+oct_traffic <- traffic %>% 
+  filter(month(date_and_time) == 10)
+
+nov_traffic <- traffic %>% 
+  filter(month(date_and_time) == 11)
+
+dec_traffic <- traffic %>% 
+  filter(month(date_and_time) == 12)
+
+
+```
 
 

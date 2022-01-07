@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(ggthemes)
 
 # Define server logic required to draw a histogram
 shinyServer<-function(input, output) {
@@ -18,6 +19,29 @@ shinyServer<-function(input, output) {
       summarize(count = n()) %>%
       top_n(n =10, wt= count) 
   })
+  
+  monthly_traffic_filtered <-  reactive({
+    traffic %>% 
+    group_by(date_and_time_formatted) %>% 
+    summarize(frequency = n()) 
+  })
+  
+ monthly_traffic_summary_filtered <- reactive({
+   traffic %>% 
+     filter(month(date_and_time) == 1) %>% 
+     summarize("Number of injuries" = sum(as.numeric(number_of_injuries)),
+               "Number of Vehicles Involved" = sum(as.numeric(number_of_motor_vehicles)),
+               "Instances of Property Damage" = sum(property_damage, na.rm = T),
+               "Instances of Hit and Run" = sum(hit_and_run),
+               "Max Number of Vehicles Involved" = max(as.numeric(number_of_motor_vehicles),na.rm = T)
+     )
+   
+ })
+  
+  
+  
+  
+  
   
 
   set.seed(122)
@@ -45,7 +69,21 @@ shinyServer<-function(input, output) {
   output$top10_tencodePlot <- renderPlot({
     top10_tencode_filtered() %>% 
       ggplot(aes(x=tencode, y=count)) +
-      geom_col()
+      geom_col() +
+      theme_few()  
   })
+  
+  output$monthly_trafficPlot <- renderPlot({
+    monthly_traffic_filtered() %>% 
+    ggplot(aes(x=factor(date_and_time_formatted,levels = month.name), y=frequency)) +
+      geom_col() +
+      theme_few() +
+      theme(legend.position = "none")
+  })
+  
+  output$monthly_traffic_summaryTable <- renderTable({
+    monthly_traffic_summary_filtered()
+  })
+  
 }
 

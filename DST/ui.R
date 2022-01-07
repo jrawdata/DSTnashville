@@ -9,66 +9,64 @@
 
 library(shiny)
 library(shinydashboard)
+library(ggthemes)
 
 # Define UI for application that draws a histogram
 ui <- dashboardPage(skin= "purple",
-  dashboardHeader(title = "Basic dashboard"),
-  dashboardSidebar(
-    sidebarMenu(
-      menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
-      menuItem("Widgets", tabName = "widgets", icon = icon("th"))
-    )
-  ),
-  
-    dashboardBody(
-      tabItems( 
-        # First tab content
-        tabItem(tabName = "dashboard",
-                fluidRow(
-                  box(title = "Title 1", width = 4, height = 250, background = "light-blue",
-                      "placeholder for graph"),
-                  
-                  box(
-                    title = "Controls",
-                    sliderInput("slider", "Number of observations:", 1, 100, 50)
-                  )
-                ),
-                fluidRow(
-                  # A static valueBox
-                  valueBox(10 * 2, "New Orders", icon = icon("credit-card")),
-                  
-                  # Dynamic valueBoxes
-                  valueBoxOutput("progressBox"),
-                  
-                  valueBoxOutput("approvalBox")
-                ),
-                fluidRow(
-                  # Clicking this will increment the progress amount
-                  box(width = 4, actionButton("count", "Increment progress")),
-                  
-                  box(plotOutput("top10_tencodePlot", height = 250))
-                  
-                )
-        ),
-        
-        # Second tab content
-        tabItem(tabName = "widgets",
-                h2("Widgets tab content",
-                   fluidRow(
-                     box(
-                       width = 4, background = "black",
-                       "A box with a solid black background"
-                     ),
-                     box(
-                       title = "Title 5", width = 4, background = "light-blue",
-                       "A box with a solid light-blue background"
-                     ),
-                     box(
-                       title = "Title 6",width = 4, background = "maroon",
-                       "A box with a solid maroon background"
-                     )
-                   ))
-        )
-      )
-    )
-  )
+                    dashboardHeader(title = "Daylight Saving Time & Nashville"),
+                    dashboardSidebar(
+                      sidebarMenu(
+                        menuItem("Main", tabName = "dashboard", icon = icon("clock")),
+                        menuItem("Map", tabName = "widgets", icon = icon("map"))
+                      )
+                    ),
+                    
+                    dashboardBody(
+                      tabItems( 
+                        # First tab content
+                        tabItem(tabName = "dashboard",
+                                fluidRow(
+                                  box(plotOutput("monthly_trafficPlot", height = 250)),
+                                  
+                                  box(title = "Title 1", width = 4, height = 250, background = "light-blue",
+                                      "placeholder for graph")
+                                      
+                                ),
+                                fluidRow(
+                                  box(tableOutput("monthly_traffic_summaryTable")),
+                                  
+                                  # Dynamic valueBoxes
+                                  valueBoxOutput("progressBox"),
+                                  
+                                  valueBoxOutput("approvalBox")
+                                ),
+                                fluidRow(
+                                  # Clicking this will increment the progress amount
+                                  box(width = 4, actionButton("count", "Increment progress")),
+                                  
+                                  box(plotOutput("top10_tencodePlot", height = 250))
+                                  
+                                )
+                        ),
+                        
+                        # Second tab content
+                        tabItem(tabName = "widgets",
+                                h2("Widgets tab content",
+                                   fluidRow(
+                                     box(
+                                       width = 4, background = "black",
+                                       "A box with a solid black background"
+                                     ),
+                                     box(
+                                       title = "Title 5", width = 4, background = "light-blue",
+                                       "A box with a solid light-blue background"
+                                     ),
+                                     box(
+                                       title = "Title 6",width = 4, background = "maroon",
+                                       "A box with a solid maroon background"
+                                     )
+                                   ))
+                        )
+                      )
+                    )
+)
