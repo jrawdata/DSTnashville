@@ -17,34 +17,48 @@ ui <- dashboardPage(skin= "purple",
                     dashboardSidebar(
                       sidebarMenu(
                         menuItem("Main", tabName = "dashboard", icon = icon("clock")),
-                        menuItem("Map", tabName = "widgets", icon = icon("map"))
+                        
+                        menuItem("Map", tabName = "widgets", icon = icon("map")),
+                        
+                        selectInput("radio", label = h2("Year"),
+                                     choices = list("All" = 1, "2015" = 2, "2016" = 3, "2017" = 4,
+                                                    "2018" = 5, "2018" = 6, "2019" = 7, "2020" = 8,
+                                                    "2021" = 9), 
+                                     selected = 1)
                       )
                     ),
                     
                     dashboardBody(
+                      
                       tabItems( 
                         # First tab content
                         tabItem(tabName = "dashboard",
                                 fluidRow(
-                                  box(plotOutput("monthly_trafficPlot", height = 250)),
-                                  
-                                  box(title = "Title 1", width = 4, height = 250, background = "light-blue",
-                                      "placeholder for graph")
-                                      
+                                  box(
+                                    column(width=12,
+                                         plotOutput("monthly_trafficPlot")
+                                         )
+                                    ),
+                                   box(
+                                  column(width=12,
+                                        plotOutput("weekly_trafficPlot", height=200)
+                                             
+                                         )
+                                         
+                                  )
                                 ),
                                 fluidRow(
                                   box(tableOutput("monthly_traffic_summaryTable")),
-                                  
+
                                   # Dynamic valueBoxes
                                   valueBoxOutput("progressBox"),
-                                  
+
                                   valueBoxOutput("approvalBox")
                                 ),
                                 fluidRow(
-                                  # Clicking this will increment the progress amount
-                                  box(width = 4, actionButton("count", "Increment progress")),
+                                 
                                   
-                                  box(plotOutput("top10_tencodePlot", height = 250))
+                                  box(plotOutput("monthly_callPlot",))
                                   
                                 )
                         ),

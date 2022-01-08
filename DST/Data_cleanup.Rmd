@@ -6,6 +6,8 @@ output: html_document
 library(httr)
 library(tidyverse)
 library(jsonlite)
+library(lubridate)
+library(ggthemes)
 ```
 #Using API to get Metro Nashivlle Traffic data for 2018
 ```{r}
@@ -31,15 +33,34 @@ traffic <-content(response, as = 'text') %>%
 #Remove some columns
 ```{r}
 traffic <- traffic %>% 
-  select(-c(reporting_officer,illuaccidemination,harmfulcodes, state, rpa, precinct,weather))
+  select(-c(reporting_officer,illuaccidemination,harmfulcodes, state, rpa, precinct,weather, collision_type,   collision_type_description,harmfuldescriptions))
 ```
 ```{r}
-traffic
+traffic %>% 
+  object.size()
 ```
+```{r}
+traffic <- traffic %>% 
+  mutate(weather_description = factor(weather_description),
+        illumination_description = factor(illumination_description),
+        street_address = factor(street_address),
+        city = factor(city),
+        zip = factor(zip))
+```
+```{r}
+traffic %>% 
+  write_rds('data/traffic.RDS')
+```
+
+
+```{r}
+traffic <- read_rds('data/traffic.RDS')
+```
+
 
 #API for Calls for Service for 2018
 ```{r}
-url = 'https://data.nashville.gov/resource/kwnd-qrrm.json'
+url = 'https://data.nashville.gov/resource/kwnd-qrrm.json?$limit=30000000'
 
 query = list(
   '$where'= 'call_rec between "2018-01-01T00:00:00" and "2018-12-31T23:59:59"'
@@ -54,8 +75,29 @@ calls <- content(response, as = 'text')  %>%
 ```
 ```{r}
 calls <- calls %>% 
-  select(-c(tencode_suf,disposition_code, shift))
+  select(-c(disposition_code, disposition_description, unit_dispatched, shift,
+            sector, zone, rpa, lat, lon, mapped_location, tencode_suf, tencode_suf_description, complaint))
 ```
+```{r}
+calls %>% 
+  object.size()
+```
+```{r}
+calls <- calls %>% 
+  mutate(event_number = factor(event_number),
+        tencode = factor(tencode),
+        description = factor(description))
+```
+
+```{r}
+calls %>% 
+  write_rds('data/calls.RDS')
+
+calls <- read_rds('data/calls.RDS')
+calls
+```
+
+
 #Convert timestamps from characters 
 ```{r}
 calls$call_rec <- as.POSIXct(calls$call_rec, format = "%Y-%m-%dT%H:%M:%OS")
@@ -87,6 +129,14 @@ calls %>%
   top_n(n =10, wt= count) %>% 
   arrange(desc(count))
 ```
+```{r}
+jan_calls <- calls %>% 
+  filter(month(call_rec) == 1) %>% 
+  count()
+
+jan_calls
+```
+
 #starting aggregate count by month for 2018 for number of accidents
 ```{r}
 traffic %>% 
@@ -104,12 +154,12 @@ traffic %>%
 
 #2018 total traffic accidents by month
 ```{r}
-traffic$date_and_time_formatted <- format(traffic$date_and_time, "%B")
+traffic$date_and_time_formatted <- format(traffic$date_and_time, "%b")
 
 traffic %>% 
   group_by(date_and_time_formatted) %>% 
   summarize(frequency = n()) %>%
-  ggplot(aes(x=factor(date_and_time_formatted,levels = month.name), y=frequency)) +
+  ggplot(aes(x=factor(date_and_time_formatted,levels = month.abb), y=frequency)) +
     geom_col() +
     theme(axis.title.x=element_blank())
 ```
@@ -127,13 +177,17 @@ traffic %>%
             "Max Number of Vehicles Involved" = max(as.numeric(number_of_motor_vehicles),na.rm = T)
             )
 ```
-
 ```{r}
 traffic %>% 
-  filter(month(date_and_time) == 2) %>% 
-  distinct(number_of_motor_vehicles)
-
+  filter(week(date_and_time) == 10) %>% 
+  summarize("Number of injuries" = sum(as.numeric(number_of_injuries)),
+            "Number of Vehicles Involved" = sum(as.numeric(number_of_motor_vehicles)),
+            "Instances of Property Damage" = sum(property_damage, na.rm = T),
+            "Instances of Hit and Run" = sum(hit_and_run),
+            "Max Number of Vehicles Involved" = max(as.numeric(number_of_motor_vehicles),na.rm = T)
+            )
 ```
+
 
 ```{r}
 jan_traffic <- traffic %>% 
@@ -171,8 +225,36 @@ nov_traffic <- traffic %>%
 
 dec_traffic <- traffic %>% 
   filter(month(date_and_time) == 12)
-
-
 ```
 
+```{r}
+month_test <- floor_date(dec_traffic$date_and_time, "week", week_start = getOption("lubridate.week.start",6)) 
+
+jan_traffic %>%   
+  group_by(month=floor_date(date_and_time, "week", week_start = getOption("lubridate.week.start",7))) %>% 
+  summarize(mean=mean(as.numeric(number_of_injuries)))
+  
+```
+
+
+```{r}
+jan_traffic %>%   
+  group_by(week=week(jan_traffic$date_and_time)) %>% 
+  summarize(Number_of_injuries=sum(as.numeric(number_of_injuries))) %>% 
+  ggplot(aes(x= week,y=Number_of_injuries)) +
+      geom_col() +
+      theme_few() +
+      theme(legend.position = "none")
+```
+```{r}
+calls$call_rec_formatted <- format(calls$call_rec, "%b")
+
+
+calls %>% 
+  group_by(call_rec_formatted) %>% 
+  summarize(frequency = n()) %>%
+  ggplot(aes(x=factor(call_rec_formatted,levels = month.abb), y=frequency)) +
+    geom_col() +
+    theme(axis.title.x=element_blank())
+```
 

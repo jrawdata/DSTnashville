@@ -9,6 +9,7 @@
 
 library(shiny)
 library(ggthemes)
+library(plotly)
 
 # Define server logic required to draw a histogram
 shinyServer<-function(input, output) {
@@ -26,6 +27,14 @@ shinyServer<-function(input, output) {
     summarize(frequency = n()) 
   })
   
+  
+  monthly_calls_filtered <- reactive({
+    calls %>% 
+    group_by(call_rec_formatted) %>% 
+    summarize(frequency = n())
+  })
+  
+  
  monthly_traffic_summary_filtered <- reactive({
    traffic %>% 
      filter(month(date_and_time) == 1) %>% 
@@ -37,31 +46,26 @@ shinyServer<-function(input, output) {
      )
    
  })
+ 
+ weekly_traffic_filtered <- reactive({
+   jan_traffic %>%   
+     group_by(week=week(jan_traffic$date_and_time)) %>% 
+     summarize(Number_of_injuries=sum(as.numeric(number_of_injuries))
+               )
+   
+ })
   
-  
-  
-  
-  
-  
-
-  set.seed(122)
-  histdata <- rnorm(500) 
-  
-  output$plot1 <- renderPlot({
-    data <- histdata[seq_len(input$slider)]
-    hist(data)
-  })
   
   output$progressBox <- renderValueBox({
     valueBox(
-      paste0(25 + input$count, "%"), "Progress", icon = icon("list"),
+      paste0(25 + input$count, "%"), "2018 year increase in accidents", icon = icon("list"),
       color = "purple"
     )
   })
   
   output$approvalBox <- renderValueBox({
     valueBox(
-      "80%", "Approval", icon = icon("thumbs-up", lib = "glyphicon"),
+      "%", "2018 year increase in calls", icon = icon("thumbs-up", lib = "glyphicon"),
       color = "yellow"
     )
   })
@@ -75,7 +79,7 @@ shinyServer<-function(input, output) {
   
   output$monthly_trafficPlot <- renderPlot({
     monthly_traffic_filtered() %>% 
-    ggplot(aes(x=factor(date_and_time_formatted,levels = month.name), y=frequency)) +
+    ggplot(aes(x=factor(date_and_time_formatted,levels = month.abb), y=frequency)) +
       geom_col() +
       theme_few() +
       theme(legend.position = "none")
@@ -85,5 +89,21 @@ shinyServer<-function(input, output) {
     monthly_traffic_summary_filtered()
   })
   
+  output$weekly_trafficPlot <- renderPlot({
+    weekly_traffic_filtered() %>% 
+      ggplot(aes(x= week,y=Number_of_injuries)) +
+      geom_col() +
+      theme_few() +
+      theme(legend.position = "none")
+  })
+  
+  output$monthly_callPlot <- renderPlot({
+    monthly_calls_filtered() %>% 
+      ggplot(aes(x=factor(call_rec_formatted,levels = month.abb), y=frequency)) +
+      geom_col() +
+      theme_few() +
+      theme(legend.position = "none")
+  })
+  
 }
-
+    
