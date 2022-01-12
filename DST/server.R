@@ -54,7 +54,22 @@ shinyServer<-function(input, output) {
                )
    
  })
-  
+ 
+ weekly_calls_filtered <- reactive({
+   jan_calls %>%
+     group_by(week=week(jan_calls$call_rec)) %>%
+     count()
+
+ })
+
+
+
+ output$weekly_callsPlot <- renderPlotly({
+   weekly_calls_filtered() %>%
+     plot_ly(x=week, y=n, type="bar")
+ })
+
+ 
   
   output$progressBox <- renderValueBox({
     valueBox(
@@ -79,8 +94,9 @@ shinyServer<-function(input, output) {
   
   output$monthly_trafficPlot <- renderPlot({
     monthly_traffic_filtered() %>% 
-    ggplot(aes(x=factor(date_and_time_formatted,levels = month.abb), y=frequency)) +
-      geom_col() +
+    ggplot(aes(x=factor(date_and_time_formatted,levels = month.abb), y=frequency, group=1)) +
+      geom_line() +
+      geom_point(shape=21, color="black", fill="#69b3a2", size=6) +
       theme_few() +
       theme(legend.position = "none")
   })
@@ -99,11 +115,26 @@ shinyServer<-function(input, output) {
   
   output$monthly_callPlot <- renderPlot({
     monthly_calls_filtered() %>% 
-      ggplot(aes(x=factor(call_rec_formatted,levels = month.abb), y=frequency)) +
-      geom_col() +
+      ggplot(aes(x=factor(call_rec_formatted,levels = month.abb), y=frequency, group=1)) +
+      geom_line() +
+      geom_point(shape=21, color="black", fill="#69b3a2", size=6) +
       theme_few() +
       theme(legend.position = "none")
   })
+ 
   
+  output$TEST_TABLE <- renderPrint({
+    keeprows <- round(input$plot_click$x) == as.numeric(TEST$week)
+    TEST[keeprows, ]
+    
+      #nearPoints(TEST, input$plot_click)
+      
+  })
+    
+    
+
+  
+  
+   
 }
     

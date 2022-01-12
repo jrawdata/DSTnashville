@@ -21,10 +21,10 @@ ui <- dashboardPage(skin= "purple",
                         menuItem("Map", tabName = "widgets", icon = icon("map")),
                         
                         selectInput("radio", label = h2("Year"),
-                                     choices = list("All" = 1, "2015" = 2, "2016" = 3, "2017" = 4,
-                                                    "2018" = 5, "2018" = 6, "2019" = 7, "2020" = 8,
-                                                    "2021" = 9), 
-                                     selected = 1)
+                                    choices = list("All" = 1, "2015" = 2, "2016" = 3, "2017" = 4,
+                                                   "2018" = 5, "2018" = 6, "2019" = 7, "2020" = 8,
+                                                   "2021" = 9), 
+                                    selected = 1)
                       )
                     ),
                     
@@ -36,32 +36,45 @@ ui <- dashboardPage(skin= "purple",
                                 fluidRow(
                                   box(
                                     column(width=12,
-                                         plotOutput("monthly_trafficPlot")
-                                         )
-                                    ),
-                                   box(
-                                  column(width=12,
-                                        plotOutput("weekly_trafficPlot", height=200)
-                                             
-                                         )
-                                         
+                                           plotOutput("monthly_trafficPlot", click = "plot_click",
+                                                      hover="plot_hover")
+                                    )
+                                  ),
+                                  box(
+                                    column(width=12,
+                                           plotOutput("weekly_trafficPlot", height=300),
+                                           
+                                           tableOutput("monthly_traffic_summaryTable")
+                                           
+                                    )
+                                    
                                   )
                                 ),
                                 fluidRow(
-                                  box(tableOutput("monthly_traffic_summaryTable")),
-
-                                  # Dynamic valueBoxes
-                                  valueBoxOutput("progressBox"),
-
-                                  valueBoxOutput("approvalBox")
+                                  column(width=6,
+                                         valueBoxOutput("progressBox")
+                                  ),
+                                  column(width=6,
+                                         valueBoxOutput("approvalBox")
+                                  )
                                 ),
                                 fluidRow(
-                                 
-                                  
-                                  box(plotOutput("monthly_callPlot",))
-                                  
+                                  box(
+                                    column(width=12,
+                                           plotOutput("monthly_callPlot", height= 300),
+                                    )
+                                  ),
+                                  box(
+                                    column(width=12,
+                                           plotlyOutput("weekly_callsPlot", height =300,
+                                                      ),
+                                           
+                                           verbatimTextOutput("TEST_TABLE")
+                                    )
+                                  )
                                 )
                         ),
+                        
                         
                         # Second tab content
                         tabItem(tabName = "widgets",
@@ -79,8 +92,11 @@ ui <- dashboardPage(skin= "purple",
                                        title = "Title 6",width = 4, background = "maroon",
                                        "A box with a solid maroon background"
                                      )
-                                   ))
+                                   )
+                                )
                         )
                       )
                     )
 )
+
+

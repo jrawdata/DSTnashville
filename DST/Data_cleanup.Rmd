@@ -8,6 +8,7 @@ library(tidyverse)
 library(jsonlite)
 library(lubridate)
 library(ggthemes)
+library(plotly)
 ```
 #Using API to get Metro Nashivlle Traffic data for 2018
 ```{r}
@@ -116,11 +117,24 @@ calls %>%
 top10_tencode <- calls %>% 
   group_by(tencode) %>% 
   summarize(count = n()) %>%
-  top_n(n =10, wt= count) %>% 
-  ggplot(aes(x=tencode, y=count)) +
-    geom_col()
-top10_tencode
+  top_n(n =10, wt= count) 
+
+plot_ly(top10_tencode,
+  x=~tencode,
+  y=~count,
+  name="Tencodes-Top 10",
+  type="bar"
+  )
+
+  
+  # ggplot(aes(x=tencode, y=count)) +
+  #   geom_col()
+
 ```
+```{r}
+unique(top10_tencode$tencode)
+```
+
 
 ```{r}
 calls %>% 
@@ -159,9 +173,10 @@ traffic$date_and_time_formatted <- format(traffic$date_and_time, "%b")
 traffic %>% 
   group_by(date_and_time_formatted) %>% 
   summarize(frequency = n()) %>%
-  ggplot(aes(x=factor(date_and_time_formatted,levels = month.abb), y=frequency)) +
-    geom_col() +
-    theme(axis.title.x=element_blank())
+  ggplot(aes(x=factor(date_and_time_formatted,levels = month.abb), y=frequency, group=1)) +
+    geom_line() + 
+    geom_point()
+
 ```
 ```{r}
 head(traffic)
@@ -228,6 +243,43 @@ dec_traffic <- traffic %>%
 ```
 
 ```{r}
+jan_calls <- calls %>% 
+  filter(month(call_rec) == 1)
+
+feb_calls <- calls %>% 
+  filter(month(call_rec) == 2)
+
+march_calls <- calls %>% 
+  filter(month(call_rec) == 3)
+
+april_calls <- calls %>% 
+  filter(month(call_rec) == 4)
+
+may_calls <- calls %>% 
+ filter(month(call_rec) == 5) 
+
+june_calls <- calls %>% 
+ filter(month(call_rec) == 6)
+
+july_calls <- calls %>% 
+ filter(month(call_rec) == 7)
+
+aug_calls <- calls %>% 
+  filter(month(call_rec) == 8)
+
+sept_calls <- calls %>% 
+  filter(month(call_rec) == 9)
+
+oct_calls <- calls %>% 
+  filter(month(call_rec) == 10)
+
+nov_calls <- calls %>% 
+  filter(month(call_rec) == 11)
+
+dec_calls <- calls %>% 
+  filter(month(call_rec) == 12)
+```
+```{r}
 month_test <- floor_date(dec_traffic$date_and_time, "week", week_start = getOption("lubridate.week.start",6)) 
 
 jan_traffic %>%   
@@ -256,5 +308,33 @@ calls %>%
   ggplot(aes(x=factor(call_rec_formatted,levels = month.abb), y=frequency)) +
     geom_col() +
     theme(axis.title.x=element_blank())
+```
+```{r}
+jan_traffic %>%   
+  group_by(week=week(jan_traffic$date_and_time)) %>% 
+  summarize(Number_of_injuries=sum(as.numeric(number_of_injuries))) %>% 
+  ggplot(aes(x= week,y=Number_of_injuries)) +
+      geom_col() +
+      theme_few() +
+      theme(legend.position = "none")
+```
+
+```{r}
+jan_calls %>%   
+  group_by(week=week(jan_calls$call_rec)) %>% 
+  count() %>% 
+  ggplot(aes(x= week, y=n)) +
+      geom_col() +
+      theme_few() +
+      theme(legend.position = "none")
+```
+
+
+```{r}
+TEST <- jan_calls %>%   
+  group_by(week=week(jan_calls$call_rec)) %>% 
+  count()
+
+TEST
 ```
 
