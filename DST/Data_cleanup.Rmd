@@ -169,15 +169,21 @@ traffic %>%
 #2018 total traffic accidents by month
 ```{r}
 traffic$date_and_time_formatted <- format(traffic$date_and_time, "%b")
+traffic$date_and_time_formatted <-factor(traffic$date_and_time_formatted, levels = unique(traffic$date_and_time_formatted))
 
 traffic %>% 
   group_by(date_and_time_formatted) %>% 
   summarize(frequency = n()) %>%
-  ggplot(aes(x=factor(date_and_time_formatted,levels = month.abb), y=frequency, group=1)) +
-    geom_line() + 
-    geom_point()
+  plot_ly(x=~factor(date_and_time_formatted, levels = month.abb),y=~frequency, type="scatter", mode="
+          lines")
+  
+  
+  # ggplot(aes(x=factor(date_and_time_formatted,levels = month.abb), y=frequency, group=1)) +
+  #   geom_line() + 
+  #   geom_point()
 
 ```
+
 ```{r}
 head(traffic)
 ```
@@ -293,40 +299,30 @@ jan_traffic %>%
 jan_traffic %>%   
   group_by(week=week(jan_traffic$date_and_time)) %>% 
   summarize(Number_of_injuries=sum(as.numeric(number_of_injuries))) %>% 
-  ggplot(aes(x= week,y=Number_of_injuries)) +
-      geom_col() +
-      theme_few() +
-      theme(legend.position = "none")
+  plot_ly(x=~week, y=~Number_of_injuries, type = "bar")
 ```
 ```{r}
 calls$call_rec_formatted <- format(calls$call_rec, "%b")
+calls$call_rec_formatted <-factor(calls$call_rec_formatted, levels = unique(calls$call_rec_formatted))
 
 
 calls %>% 
   group_by(call_rec_formatted) %>% 
   summarize(frequency = n()) %>%
-  ggplot(aes(x=factor(call_rec_formatted,levels = month.abb), y=frequency)) +
-    geom_col() +
-    theme(axis.title.x=element_blank())
+  plot_ly(x=~factor(call_rec_formatted,levels = month.abb), y=~frequency, type="scatter", mode="lines")
 ```
 ```{r}
 jan_traffic %>%   
   group_by(week=week(jan_traffic$date_and_time)) %>% 
   summarize(Number_of_injuries=sum(as.numeric(number_of_injuries))) %>% 
-  ggplot(aes(x= week,y=Number_of_injuries)) +
-      geom_col() +
-      theme_few() +
-      theme(legend.position = "none")
+  plot_ly(x=~week, y=~Number_of_injuries, type="bar")
 ```
 
 ```{r}
 jan_calls %>%   
   group_by(week=week(jan_calls$call_rec)) %>% 
   count() %>% 
-  ggplot(aes(x= week, y=n)) +
-      geom_col() +
-      theme_few() +
-      theme(legend.position = "none")
+  plot_ly(x=~week, y=~n, type="bar")
 ```
 
 
