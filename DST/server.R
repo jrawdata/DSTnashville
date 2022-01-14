@@ -64,11 +64,6 @@ shinyServer<-function(input, output) {
 
 
 
- output$weekly_callsPlot <- renderPlotly({
-   weekly_calls_filtered() %>%
-     plot_ly(x=week, y=n, type="bar")
- })
-
  
   
   output$progressBox <- renderValueBox({
@@ -85,47 +80,74 @@ shinyServer<-function(input, output) {
     )
   })
   
-  output$top10_tencodePlot <- renderPlot({
+  output$top10_tencodePlot <- renderPlotly({
     top10_tencode_filtered() %>% 
-      ggplot(aes(x=tencode, y=count)) +
-      geom_col() +
-      theme_few()  
+      plot_ly(top10_tencode,
+              x=~tencode,
+              y=~count,
+              name="Tencodes-Top 10",
+              type="bar"
+      )  
   })
   
-  output$monthly_trafficPlot <- renderPlot({
+  output$monthly_trafficPlot <- renderPlotly({
+    event.data <- event_data(event = "plotly_click")  
+    
     monthly_traffic_filtered() %>% 
-    ggplot(aes(x=factor(date_and_time_formatted,levels = month.abb), y=frequency, group=1)) +
-      geom_line() +
-      geom_point(shape=21, color="black", fill="#69b3a2", size=6) +
-      theme_few() +
-      theme(legend.position = "none")
+      plot_ly(x=~factor(date_and_time_formatted, levels = month.abb),y=~frequency, type="scatter", mode="
+          lines"
+              # , 
+              # key = ~weekly_plots,
+              # source = ~wk_plts
+      )
   })
+  
+  # 
+  # 
+  # output$ratingPlot <- renderPlotly({
+  #   event.data <- event_data(event = "plotly_selected", source = "imgLink")
+  #   if (is.null(event.data)) {
+  #     print("Click and drag events (i.e., select/lasso) to make the bar plot appear here")
+  #     plot_ly(ice.cream.df, x = ~flavors, y = ~rating, type = "bar",
+  #             text = ~paste("Flavor:", flavors)) %>%
+  #       layout(title = paste("Ice Cream Ratings Given by Flavor"))
+  #   } else {
+  #     ice.cream <- ice.cream.df[ice.cream.df$images %in% event.data$key,]
+  #     plot_ly(ice.cream, x = ~flavors, y = ~rating, type = "bar",
+  #             text = ~paste("Flavor:", flavors), key = ~images, source = "imgLink")
+  # 
+  # 
+  # 
+  # 
   
   output$monthly_traffic_summaryTable <- renderTable({
     monthly_traffic_summary_filtered()
   })
   
-  output$weekly_trafficPlot <- renderPlot({
+  output$weekly_trafficPlot <- renderPlotly({
     weekly_traffic_filtered() %>% 
-      ggplot(aes(x= week,y=Number_of_injuries)) +
-      geom_col() +
-      theme_few() +
-      theme(legend.position = "none")
+      plot_ly(x=~week, y=~Number_of_injuries, type = "bar")
   })
   
-  output$monthly_callPlot <- renderPlot({
+  output$monthly_callPlot <- renderPlotly({
     monthly_calls_filtered() %>% 
-      ggplot(aes(x=factor(call_rec_formatted,levels = month.abb), y=frequency, group=1)) +
-      geom_line() +
-      geom_point(shape=21, color="black", fill="#69b3a2", size=6) +
-      theme_few() +
-      theme(legend.position = "none")
+      plot_ly(x=~factor(call_rec_formatted,levels = month.abb), y=~frequency, type="scatter", mode="lines")
   })
+  
+  
+  output$weekly_callsPlot <- renderPlotly({
+    weekly_calls_filtered() %>%
+      plot_ly(x=~week, y=~n, type="bar")
+  })
+  
  
   
   output$TEST_TABLE <- renderPrint({
-    keeprows <- round(input$plot_click$x) == as.numeric(TEST$week)
-    TEST[keeprows, ]
+    event_data("plotly_click")
+    
+    
+    # keeprows <- round(input$plot_click$x) == as.numeric(TEST$week)
+    # TEST[keeprows, ]
     
       #nearPoints(TEST, input$plot_click)
       

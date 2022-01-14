@@ -36,13 +36,12 @@ ui <- dashboardPage(skin= "purple",
                                 fluidRow(
                                   box(
                                     column(width=12,
-                                           plotOutput("monthly_trafficPlot", click = "plot_click",
-                                                      hover="plot_hover")
+                                           plotlyOutput("monthly_trafficPlot")
                                     )
                                   ),
                                   box(
                                     column(width=12,
-                                           plotOutput("weekly_trafficPlot", height=300),
+                                           plotlyOutput("weekly_trafficPlot", height=300),
                                            
                                            tableOutput("monthly_traffic_summaryTable")
                                            
@@ -61,7 +60,7 @@ ui <- dashboardPage(skin= "purple",
                                 fluidRow(
                                   box(
                                     column(width=12,
-                                           plotOutput("monthly_callPlot", height= 300),
+                                           plotlyOutput("monthly_callPlot", height= 300),
                                     )
                                   ),
                                   box(
