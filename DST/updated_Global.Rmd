@@ -1,0 +1,171 @@
+---
+title: "Traffic_Data"
+output: html_document
+---
+---
+title: "Midcourse"
+output: html_document
+---
+```{r}
+library(httr)
+library(tidyverse)
+library(jsonlite)
+library(lubridate)
+library(plotly)
+```
+#Using API to get Metro Nashivlle Traffic data for 2015-2021
+```{r}
+url = 'https://data.nashville.gov/resource/6v6w-hpcw.json?$limit=300000'
+
+query = list(
+  '$where'= 'date_and_time between "2015-01-01T00:00:00" and "2021-12-31T23:59:59"'
+) 
+
+response <- GET(url, query = query)
+```
+
+```{r}
+response$status_code
+```
+
+#Convert to tibble
+```{r}
+traffic <-content(response, as = 'text') %>% 
+  fromJSON()
+```
+
+#Remove some columns
+```{r}
+traffic <- traffic %>% 
+  select(c(accident_number, date_and_time, number_of_motor_vehicles, number_of_injuries,property_damage, hit_and_run, weather_description,illumination_description))
+```
+```{r}
+traffic %>% 
+  object.size()
+```
+
+```{r}
+traffic <- traffic %>% 
+  mutate(weather_description = factor(weather_description),
+        illumination_description = factor(illumination_description),
+        accident_number = factor(accident_number)
+  )
+       
+```
+```{r}
+traffic %>% 
+  write_rds('data/traffic.RDS')
+```
+
+
+```{r}
+traffic <- read_rds('data/traffic.RDS')
+```
+
+```{r}
+traffic$date_and_time <- as.POSIXct(traffic$date_and_time, format = "%Y-%m-%dT%H:%M:%OS")
+```
+```{r}
+traffic
+```
+#2015-2021 total traffic accidents by month
+#Work on graph appearance
+```{r}
+traffic$date_and_time_formatted <- format(traffic$date_and_time, "%b")
+traffic$date_and_time_formatted <- ordered(traffic$date_and_time_formatted, levels=month.abb)
+
+traffic %>% 
+  group_by(date_and_time_formatted) %>% 
+  summarize(frequency = n()) %>%
+  plot_ly(x=~factor(date_and_time_formatted, levels = month.abb),y=~frequency, type="scatter", mode="
+          lines") %>%
+  layout(title = 'Manually Specified Labels', plot_bgcolor = "#f0ffff", xaxis = list(title = ''), 
+         yaxis = list(title = 'Number of Traffic Incidents'))
+    
+```
+```{r}
+traffic %>% 
+  group_by(date_and_time_formatted) %>% 
+  summarize("Number of injuries" = sum(as.numeric(number_of_injuries)),
+            "Number of Vehicles Involved" = sum(as.numeric(number_of_motor_vehicles),na.rm = T),
+            "Instances of Property Damage" = sum(property_damage, na.rm = T),
+            "Instances of Hit and Run" = sum(hit_and_run, na.rm=T),
+            "Max Number of Vehicles Involved" = max(as.numeric(number_of_motor_vehicles),na.rm = T)
+  ) 
+```
+```{r}
+traffic %>% 
+  group_by(date_and_time_formatted) %>% 
+  summarize(`Number of Incidents` = n()) %>% 
+plot_ly(y=~`Number of Incidents`, type = "box", name="") 
+```
+```{r}
+traffic %>% 
+  group_by(date_and_time_formatted) %>% 
+  summarize(frequency = n())
+```
+
+```{r}
+weather_conditions <- traffic %>% 
+  count(weather_description) %>% 
+  na.omit() 
+
+weather_conditions
+
+```
+
+
+
+```{r}
+weather_conditions$weather_description <-as.character(weather_conditions$weather_description)
+
+weather_conditions$weather_description[which(weather_conditions$n < 5000)] <- "Other"
+
+weather_conditions$weather_description <- factor(weather_conditions$weather_description )
+
+weather_conditions
+```
+
+```{r}
+lighting_conditions <- traffic %>% 
+  count(illumination_description) %>% 
+  na.omit() 
+
+lighting_conditions <- lighting_conditions %>% 
+  subset(illumination_description != "OTHER" & illumination_description != "UNKNOWN")
+```
+
+```{r}
+lighting_conditions
+```
+
+```{r}
+choiceVec <- c("2015" = 'date_and_time > "2015-01-01" & date_and_time < "2015-12-31"',
+               "2016" = 'date_and_time > "2016-01-01" & date_and_time < "2016-12-31"',
+               "2017" = 'date_and_time > "2017-01-01" & date_and_time < "2017-12-31"',
+               "2018" = 'date_and_time > "2018-01-01" & date_and_time < "2018-12-31"',
+               "2019" = 'date_and_time > "2019-01-01" & date_and_time < "2019-12-31"',
+               "2020" = 'date_and_time > "2020-01-01" & date_and_time < "2020-12-31"',
+               "2021" = 'date_and_time > "2021-01-01" & date_and_time < "2021-12-31"'
+)
+                
+```
+```{r}
+traffic %>% 
+  filter(date_and_time > "2015-01-01" & date_and_time < "2015-12-31") %>% 
+  group_by(date_and_time_formatted) %>% 
+  summarize(frequency = n()) %>%
+  plot_ly(x=~factor(date_and_time_formatted, levels = month.abb),y=~frequency, type="scatter", mode="
+          lines") %>%
+  layout(title = 'Manually Specified Labels', plot_bgcolor = "#f0ffff", xaxis = list(title = ''), 
+         yaxis = list(title = 'Number of Traffic Incidents'))
+    
+```
+
+```{r}
+traffic %>% 
+  group_by(date_and_time_formatted) %>% 
+  summarize(frequency = n()) 
+```
+
+
