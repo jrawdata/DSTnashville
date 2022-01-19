@@ -3,29 +3,37 @@ library(shiny)
 library(plotly)
 library(tidyverse)
 library(shinydashboard)
-  
+library(shinyWidgets)
+
 ui <- dashboardPage(skin= "purple",
                     dashboardHeader(title = "Daylight Saving Time & Nashville"),
                     dashboardSidebar(
                       sidebarMenu(
-                        menuItem("Traffic Accidents", tabName = "traffic_accidents", icon = icon("car")),
+                        menuItem("Traffic Accidents", tabName = "traffic_accidents", icon = icon("car")
+                                 ),
                         
-                        menuItem("Police Calls", tabName = "calls", icon = icon("phone")),
+                        menuItem("Police Calls", tabName = "calls", icon = icon("phone")
+                                 ),
                         
-                        selectInput("year", label = h2("Year"),
-                                    # choices = list("All", "2015", "2016", "2017",
-                                    #                "2018" , "2018", "2019", "2020",
-                                    #                "2021"), 
-                                    choices = list(  "All"='date_and_time between "2015-01-01T00:00:00" and "2021-12-31T23:59:59"', 
-                                         "2015" = 'date_and_time > "2015-01-01" & date_and_time < "2015-12-31"',
-                                         "2016" = 'date_and_time > "2016-01-01" & date_and_time < "2016-12-31"',
-                                         "2017" = 'date_and_time > "2017-01-01" & date_and_time < "2017-12-31"',
-                                         "2018" = 'date_and_time > "2018-01-01" & date_and_time < "2018-12-31"',
-                                         "2019" = 'date_and_time > "2019-01-01" & date_and_time < "2019-12-31"',
-                                         "2020" = 'date_and_time > "2020-01-01" & date_and_time < "2020-12-31"',
-                                         "2021" = 'date_and_time > "2021-01-01" & date_and_time < "2021-12-31"'
-                                    ),
-                                    selected = 1)
+                        pickerInput("year", label = h2("Year"),
+                                    choices = unique(sort(format(traffic$date_and_time, format="%Y")
+                                                          )
+                                                     ),
+                                    options = list(`actions-box` =TRUE),
+                                    multiple=TRUE
+                        ),
+                        
+                      
+                        radioButtons(
+                          "tf",
+                          "Timeframe",
+                          choices = c("Weekly",
+                                      "Daily"),
+                          selected = NULL,
+              
+                        )
+                        
+                        
                       )
                     ), 
                     
@@ -43,130 +51,251 @@ ui <- dashboardPage(skin= "purple",
                                          valueBoxOutput("progressBox"),
                                          valueBoxOutput("approvalBox"),
                                          valueBoxOutput("funBox")
+                                         
                                        )
                                 ),
                                 
                                 column(width=6,
-                                       plotlyOutput("boxplot", height = 407), br(),
+                                       tabBox(width='125%',height=430,
+                                              title = tagList(icon("calendar-alt")),
+                                              # The id lets us use input$tabset1 on the server to find the current tab
+                                              id = "tabset1",
+                                              tabPanel("Year", 
+                                                       plotlyOutput("boxplotYear")
+                                              )
+                                              ,
+                                              tabPanel("Month", br(),
+                                                       plotlyOutput("boxplotMonth")
+                                              ) 
+                                              
+                                       ),
+                                       
+                                       
                                        
                                        
                                        tabBox(width='125%',
-                                         title = tagList(icon("cloud-sun-rain"),icon("adjust"), "tabBox status"),
-                                         # The id lets us use input$tabset1 on the server to find the current tab
-                                         id = "tabset1", height = "245px",
-                                         tabPanel("Weather", 
-                                                  plotlyOutput("weather_plot")),
-                                         tabPanel("Lighting", 
-                                                  plotlyOutput("lighting_plot"))
+                                              title = tagList(icon("cloud-sun-rain"),icon("adjust")),
+                                              # The id lets us use input$tabset1 on the server to find the current tab
+                                              id = "tabset2", 
+                                              tabPanel("Weather", 
+                                                       plotlyOutput("weather_plot")),
+                                              tabPanel("Lighting", 
+                                                       plotlyOutput("lighting_plot"))
                                        ),
-                                         # plotlyOutput("weather_plot", width='96.7%', height=436)
-                                         # ,
-                                         # plotlyOutput("lighting_plot",width=100)
-                                         
-                                       )
                                        
                                        
+                                )
+                                
+                                
                                 
                         ),
                         tabItem(tabName ="calls")
                       )
                     )
 )
-                    
 
-  server <- function(input, output) {
 
-    monthly_traffic_filtered <-  reactive({
-      traffic %>%
-        filter(input$year) %>% 
-        group_by(date_and_time_formatted) %>%
-        summarize(frequency = n())
-    })
-
-    month_stats <-  reactive({
+server <- function(input, output) {
+  
+  monthly_traffic_filtered <-  reactive({
     traffic %>%
+      filter(format(date_and_time, format="%Y") %in% input$year) %>% 
+      group_by(date_and_time_formatted, format(date_and_time, format="%Y")) %>%
+      rename(Year=`format(date_and_time, format = "%Y")`) %>% 
+      summarize(frequency = n()) %>% 
+      ungroup()
+    
+  })
+  
+  
+  
+  
+
+  
+  month_stats <-  reactive({
+    traffic %>%
+      filter(format(date_and_time, format="%Y") %in% input$year) %>% 
       group_by(date_and_time_formatted) %>%
       summarize("Number of injuries" = sum(as.numeric(number_of_injuries)),
                 "Number of Vehicles Involved" = sum(as.numeric(number_of_motor_vehicles),na.rm=T),
                 "Instances of Property Damage" = sum(property_damage, na.rm = T),
                 "Instances of Hit and Run" = sum(hit_and_run, na.rm=T),
-                "Max Number of Vehicles Involved" = max(as.numeric(number_of_motor_vehicles),na.rm = T)
-      )
+                "Max Number of Vehicles Involved" = max(as.numeric(number_of_motor_vehicles),na.rm = T)) %>% 
+      rename(Month=date_and_time_formatted)
+    
+    
   })
-    options(width = 100) # Increase text width for printing table
-
-
-    output$monthly_trafficPlot <- renderPlotly({
-      monthly_traffic_filtered() %>%
-        plot_ly(x=~factor(date_and_time_formatted, levels = month.abb),y=~frequency, source="month", type="scatter", mode="
-          lines")
-
-    })
-
-    output$monthly_table = DT::renderDataTable({
-      all <- month_stats()
-      
-      click <- event_data("plotly_click", source="month")
-      if(is.null(click)) return(all)
-
-      all %>%
-        filter(date_and_time_formatted==click$x)
-
-    },
-    extensions= 'Buttons',
-    options= list(pageLength=6, dom = 'bltpr', buttons=list("print","copy") )
+  
+  lighting_filtered <- reactive({
+    traffic %>% 
+      filter(format(date_and_time, format="%Y") %in% input$year) %>% 
+      subset(illumination_description != "OTHER" & illumination_description != "UNKNOWN") %>%
+      count(illumination_description) %>% 
+      na.omit() 
     
+  })
+  
+  
+  weather_filtered <- reactive ({
+    traffic %>% 
+      filter(format(date_and_time, format="%Y") %in% input$year) %>%
+      count(weather_description) %>% 
+      na.omit()
+    
+  })
+  
+  month_pct <- reactive({
+    traffic %>% 
+      filter(format(date_and_time, format="%Y") %in% input$year) %>% 
+      group_by(date_and_time_formatted) %>% 
+      summarize(frequency = n()) %>%
+      mutate(pct_change = (frequency/lag(frequency)-1) *100) %>% 
+      pluck(3,3, round,1)
+    
+  })
+  
+  week_pct <- reactive({
+    traffic %>% 
+      filter(format(date_and_time, format="%Y") %in% input$year) %>% 
+      filter(date_and_time_formatted=="Mar") %>% 
+      group_by(month=ceiling_date(date_and_time, "week", week_start = getOption("lubridate.week.start",7))) %>% 
+      summarize(frequency=n()) %>% 
+      mutate(pct_change = (frequency/lag(frequency)-1) *100) %>% 
+      pluck(3,3, round, 1)
+    
+  })
+  
+  
+  output$monthly_trafficPlot <- renderPlotly({
+    if (input$year) {   
+     monthly_traffic_filtered() %>%
+      plot_ly(x=~factor(date_and_time_formatted, levels = month.abb),
+              y=~frequency,source="month",
+              type="scatter",
+              mode="lines",
+              color=~Year) %>%
+      layout(xaxis=list(title="")
+             )
+    }
+
+
+    if (input$tf == "Weekly") {
+      traffic %>%
+      filter(format(date_and_time, format="%Y") %in% input$year) %>%
+      group_by(format(date_and_time, format="%U")) %>%
+      rename(Week=`format(date_and_time, format = "%U")`) %>%
+      summarize(frequency = n()) %>%
+      ungroup() %>%
+      plot_ly(x=~Week,y=~frequency,type="scatter", mode="lines+markers")
+    }
+
+    if (input$tf == "Daily") {
+      traffic %>%
+      filter(format(date_and_time, format="%Y") %in% input$year) %>%
+      group_by(format(date_and_time, format="%j")) %>%
+      rename(Day=`format(date_and_time, format = "%j")`) %>%
+      summarize(frequency = n()) %>%
+      ungroup() %>%
+      plot_ly(x=~Week,y=~frequency,type="scatter", mode="lines+markers")
+
+    }
+})
+
+
+  
+  
+  output$monthly_table = DT::renderDataTable({
+    all <- month_stats()
+    
+    click <- event_data("plotly_click", source="month")
+    if(is.null(click)) return(all)
+    
+    all %>%
+      filter(date_and_time_formatted==click$x)
+    
+  },
+  extensions= 'Buttons',
+  options= list(pageLength=6, 
+                dom = 'Bfrtip', 
+                buttons=list(
+                  
+                  list(   #Can't get it to work
+                    extend = "collection",
+                    text = 'Show all',
+                    action = function ( e, dt, node, config ) {
+                      if(is.null(click)) return(all);
+                    }
+                  )
+                )
+  )
+  )
+  
+  
+  output$progressBox <- renderValueBox({
+    valueBox(
+      "5%", "Avg. increase in # of incidents (from Feb to March)", icon = icon("list"),
+      color = "purple"
     )
-
-    output$TEST <-renderPrint({
-        "HELLO"
-    })
+  })
+  
+  
+  output$approvalBox <- renderValueBox({
+    valueBox(
+      paste0(month_pct(),"%"),
+      "Change in # of incidents this year (from Feb to March)", icon = icon("car-crash"),
+      color = "yellow")
     
-    output$progressBox <- renderValueBox({
-      valueBox(
-        paste0(25 + input$count, "%"), "2018 year increase in accidents", icon = icon("list"),
-        color = "purple"
+  })
+  
+  output$funBox <- renderValueBox({
+    valueBox(
+      paste0(week_pct(), "%"),
+      "Percent change (from 1st week to 2nd week in March)", icon = icon("chart-line"),
+      color = "blue"
+    )
+  })
+  
+  
+  output$boxplotYear <- renderPlotly({
+    traffic %>% 
+      filter(format(date_and_time, format="%Y") %in% input$year) %>%
+      group_by(date_and_time_formatted) %>% 
+      summarize(`Number of Incidents` = n()) %>% 
+      plot_ly(y=~`Number of Incidents`, type = "box") %>% 
+      layout(title="Average Number of Incidents by Year",
+             xaxis = list(showticklabels = F)
       )
-    })
     
-    
-    output$approvalBox <- renderValueBox({
-      valueBox(
-        "%", "2018 year increase in calls", icon = icon("sun"),
-        color = "yellow"
+  })
+  
+  output$boxplotMonth <- renderPlotly({
+    traffic %>% 
+      filter(date_and_time_formatted=="Mar")
+    group_by(date_and_time_formatted) %>% 
+      summarize(`Number of Incidents` = n()) %>% 
+      plot_ly(y=~`Number of Incidents`, type = "box") %>% 
+      layout(title="Average Number of Incidents by Year",
+             xaxis = list(showticklabels = F)
       )
-    })
     
-    output$funBox <- renderValueBox({
-      valueBox(
-        "%", "2018 year increase in calls", icon = icon("moon"),
-        color = "blue"
-      )
-    })
-
-
-    output$boxplot <- renderPlotly({
-      traffic %>% 
-        group_by(date_and_time_formatted) %>% 
-        summarize(`Number of Incidents` = n()) %>% 
-        plot_ly(y=~`Number of Incidents`, type = "box", name="") 
-    })
-    
-    output$weather_plot <- renderPlotly({
-      
-      weather_conditions %>% 
-        plot_ly(x=~weather_description, y=~n, type="bar")
-    })
-    
-    output$lighting_plot <- renderPlotly({
-      
-      lighting_conditions %>% 
-        plot_ly(x=~illumination_description, y=~n, type="bar")
-    })
+  })
+  
+  output$weather_plot <- renderPlotly({
+    weather_filtered() %>% 
+      plot_ly(x=~weather_description, y=~n, type="bar")
+  })
+  
+  output$lighting_plot <- renderPlotly({
+    lighting_filtered() %>% 
+      plot_ly(x=~illumination_description, y=~n, type="bar")
+  })
 }
 
 
-  shinyApp(ui, server)
-  
 
-  
+
+
+
+shinyApp(ui, server)
+
+
